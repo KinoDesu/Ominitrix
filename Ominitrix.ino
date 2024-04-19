@@ -2,6 +2,21 @@
 #include <Adafruit_GC9A01A.h>
 #include "images.h"
 
+/*
+    Arduino -> UNO
+    display -> GC9A01 VER1.0
+    _______________________
+    | **DISPLAY** | **PIN** |
+    |:-----------:|:-------:|
+    |     VCC     |  3.3V   |
+    |     GND     |  GROUND |
+    |     SCL     |  13     |
+    |     DC      |  11     |
+    |     CS      |  9      |
+    |     RST     |  10     |
+    |_____________|_________|
+*/
+
 #define potentiometer A1
 #define btnAlienChooser 5
 #define buzzer 4
