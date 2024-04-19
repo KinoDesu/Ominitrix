@@ -16,16 +16,17 @@ Adafruit_GC9A01A tft = Adafruit_GC9A01A(TFT_CS, TFT_DC);
 #define IMAGE_WIDTH 100
 #define IMAGE_HEIGHT 120
 
-byte isAlienForm = HIGH;
-byte isActivate = LOW;
-byte lastPotentiometerValue = 0;
+boolean isAlienForm = false;
+boolean isActivate = false;
+boolean isSameRecharge = false;
 boolean hasLastPotentiometer = false;
-boolean hasBattery = true;
+byte lastPotentiometerValue = 0;
 long elapsedTime = 0L;
-long deschargeTime = 5000;
-long rechargeTime = 5000;
-volatile long loopStart;
-byte result = 0;
+long morphedTime = 0L;
+long minMorphTime = 5000L;
+long deschargeTime = 15000L;
+long batteryValue = deschargeTime;
+long loopStart;
 
 void setup()
 {
@@ -39,7 +40,9 @@ void setup()
   tone(buzzer, 1600);
   delay(100);
   noTone(buzzer);
-  tft.fillScreen(0x0F00);
+
+  tft.fillScreen(0x0000);
+  fadeInScreen(0x0F00);
 
   pinMode(potentiometer, INPUT);
   pinMode(btnAlienChooser, INPUT);
@@ -51,67 +54,45 @@ void loop()
 {
   loopStart = millis();
 
-  if (elapsedTime >= rechargeTime && hasBattery == false)
-  {
-    hasBattery = true;
-
-    tone(buzzer, 800);
-    delay(100);
-    noTone(buzzer);
-    delay(10);
-    tone(buzzer, 1600);
-    delay(100);
-    noTone(buzzer);
-
-    tft.fillScreen(0x0F00);
-
-    elapsedTime = 0L;
-    delay(100);
-  }
-
   if (digitalRead(btnActivate) == HIGH)
   {
     // travado enquanto o botão estiver segurado
     while (digitalRead(btnActivate) == HIGH)
       ;
-
-    // se desligado e com bateria
-    if (isActivate == LOW && hasBattery == true)
-    {
-
-      // liga o omnitrix
-      isActivate = HIGH;
-
-      omnitrixStartup();
-      alienSelect();
-    }
-    // se desligado e sem bateria
-    else if (isActivate == LOW && hasBattery == false)
-    {
-
-      // toca o som
-      tone(buzzer, 125);
-      delay(250);
-      noTone(buzzer);
-      delay(100);
-
-      // se ligado
-    }
-    else if (isActivate == HIGH)
-    {
-      // desliga o omnitrix
-      isActivate = LOW;
-      omnitrixShutdown();
-      delay(100);
-    }
+    omnitrixModeSet();
   }
 
-  if (hasBattery == false)
+  omnitrixRecharge();
+}
+
+void omnitrixModeSet()
+{
+  // se desligado e com bateria maior q 0
+  if (isActivate == false && batteryValue > minMorphTime)
   {
+    // liga o omnitrix
+    isActivate = true;
+
+    omnitrixStartup();
+    alienSelect();
+  }
+  // se desligado e sem bateria
+  else if (isActivate == false && batteryValue < minMorphTime)
+  {
+    // toca o som
+    tone(buzzer, 125);
+    delay(250);
+    noTone(buzzer);
     delay(100);
 
-    elapsedTime += millis() - loopStart;
-    Serial.println(elapsedTime);
+    // se ligado
+  }
+  else if (isActivate == true)
+  {
+    // desliga o omnitrix
+    isActivate = false;
+    omnitrixShutdown();
+    delay(100);
   }
 }
 
@@ -130,7 +111,8 @@ void omnitrixStartup()
 
 void alienSelect()
 {
-  while (isActivate == HIGH)
+  fadeInScreen(0x0000);
+  while (isActivate == true)
   {
 
     if (digitalRead(btnActivate) == HIGH)
@@ -142,46 +124,92 @@ void alienSelect()
       return;
     }
 
-    int potVal = analogRead(potentiometer);
-    result = map(potVal, 0, 650, 0, 9);
+    byte alienNo = map(analogRead(potentiometer), 0, 650, 0, 9);
 
     if (hasLastPotentiometer == false)
     {
-      showScreen(result);
+      changeAlien(lastPotentiometerValue, alienNo);
       hasLastPotentiometer = true;
-      lastPotentiometerValue = result;
+      lastPotentiometerValue = alienNo;
     }
 
-    if (result != lastPotentiometerValue)
+    if (alienNo != lastPotentiometerValue)
     {
-      lastPotentiometerValue = result;
       tone(buzzer, 125);
       delay(100);
       noTone(buzzer);
-      cleanScreen();
-      showScreen(result);
+      changeAlien(lastPotentiometerValue, alienNo);
+      lastPotentiometerValue = alienNo;
     }
 
     if (digitalRead(btnAlienChooser) == HIGH)
     {
+
       hasLastPotentiometer = false;
-      isActivate = LOW;
-      isAlienForm = LOW;
+      isActivate = false;
+      isAlienForm = true;
+      isSameRecharge = false;
       tone(buzzer, 367);
       delay(100);
       noTone(buzzer);
-      tft.fillScreen(0xFFFF);
-    }
+      fadeInScreen(0xFFFF);
 
-    if (isAlienForm == LOW)
-    {
-      delay(deschargeTime);
+      long morphStart = millis();
+      while (isAlienForm)
+      {
+        morphedTime = millis() - morphStart;
+        if (morphedTime >= batteryValue)
+        {
+          batteryValue -= morphedTime;
 
-      omniDescharge();
-      hasBattery = false;
-      loopStart = millis();
+          if (batteryValue < 0)
+          {
+            batteryValue = 0;
+          }
+
+          omnitrixDescharge();
+          isAlienForm = false;
+          loopStart = millis();
+        }
+
+        if (digitalRead(btnActivate) == HIGH && morphedTime >= minMorphTime)
+        {
+          while (digitalRead(btnActivate) == HIGH)
+            ;
+          batteryValue -= morphedTime;
+
+          if (batteryValue < 0)
+          {
+            batteryValue = 0;
+          }
+
+          omnitrixShutdown();
+          isAlienForm = false;
+          loopStart = millis();
+        }
+      }
     }
   }
+}
+
+void changeAlien(byte lastAlienNo, byte alienNo)
+{
+  if (lastAlienNo > alienNo)
+  {
+    for (int x = (DISPLAY_WIDTH - IMAGE_WIDTH) / 2; x <= (DISPLAY_WIDTH - IMAGE_WIDTH) / 2 + IMAGE_WIDTH; x++)
+    {
+      tft.drawFastVLine(x, (DISPLAY_HEIGHT - IMAGE_HEIGHT) / 2, IMAGE_HEIGHT, 0x0000);
+    }
+  }
+  else
+  {
+    for (int x = (DISPLAY_WIDTH - IMAGE_WIDTH) / 2 + IMAGE_WIDTH; x >= (DISPLAY_WIDTH - IMAGE_WIDTH) / 2; x--)
+    {
+      tft.drawFastVLine(x, (DISPLAY_HEIGHT - IMAGE_HEIGHT) / 2, IMAGE_HEIGHT, 0x0000);
+    }
+  }
+
+  tft.drawBitmap((DISPLAY_WIDTH - IMAGE_WIDTH) / 2, (DISPLAY_HEIGHT - IMAGE_HEIGHT) / 2, alienList[alienNo], IMAGE_WIDTH, IMAGE_HEIGHT, 0xFFFF);
 }
 
 void omnitrixShutdown()
@@ -191,69 +219,88 @@ void omnitrixShutdown()
   tone(buzzer, 250);
   delay(100);
   noTone(buzzer);
-  tft.fillScreen(0x0F00);
+  fadeInScreen(0x0F00);
   hasLastPotentiometer = false;
 }
 
-void omniDescharge()
+void omnitrixDescharge()
 {
-  isAlienForm = HIGH;
+  isAlienForm = false;
   hasLastPotentiometer = false;
 
-  tft.fillScreen(0xF000);
-  delay(100);
+  // vermelho
+  fadeInScreen(0xF000);
+  // toca
+  tone(buzzer, 125);
+  delay(250);
+  noTone(buzzer);
+  // branco
+  fadeInScreen(0xFFFF);
+
+  // vermelho
+  fadeInScreen(0xF000);
+  // toca
+  tone(buzzer, 125);
+  delay(250);
+  noTone(buzzer);
+  // branco
+  fadeInScreen(0xFFFF);
+
+  // vermelho
+  fadeInScreen(0xF000);
   tone(buzzer, 125);
   delay(500);
   noTone(buzzer);
-  delay(500);
-
-  tft.fillScreen(0xFFFF);
-  delay(100);
-  tft.fillScreen(0xF000);
-  tone(buzzer, 125);
-  delay(500);
-  noTone(buzzer);
-  delay(500);
-  tft.fillScreen(0xFFFF);
-  delay(100);
-
-  tft.fillScreen(0xFFFF);
-  delay(100);
-  tft.fillScreen(0xF000);
-  tone(buzzer, 125);
-  delay(1000);
-  noTone(buzzer);
-  delay(100);
-  tft.fillScreen(0xF000);
+  fadeInScreen(0xF000);
 }
 
-void cleanScreen()
+void omnitrixRecharge()
 {
-  tft.fillScreen(0x0000);
-}
-
-void showScreen(byte result)
-{
-  cleanScreen();
-  drawBitmapMe((DISPLAY_WIDTH - IMAGE_WIDTH) / 2, (DISPLAY_HEIGHT - IMAGE_HEIGHT) / 2, alienList[result], IMAGE_WIDTH, IMAGE_HEIGHT, 0xFFFF);
-}
-
-void drawBitmapMe(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color)
-{
-
-  int16_t i, j, byteWidth = (w + 7) / 8;
-  uint8_t byte;
-
-  for (j = 0; j < h; j++)
+  if (batteryValue < deschargeTime)
   {
-    for (i = 0; i < w; i++)
+    delay(100);
+    elapsedTime += millis() - loopStart;
+    batteryValue += elapsedTime;
+
+    if (batteryValue >= minMorphTime && isSameRecharge == false)
     {
-      if (i & 7)
-        byte <<= 1;
-      else
-        byte = pgm_read_byte(bitmap + j * byteWidth + i / 8);
-      if (byte & 0x80)
-        tft.drawPixel(x + i, y + j, color);
+      morphedTime = 0L;
+      tone(buzzer, 800);
+      delay(100);
+      noTone(buzzer);
+      delay(10);
+      tone(buzzer, 1600);
+      delay(100);
+      noTone(buzzer);
+      isSameRecharge = true;
+      fadeInScreen(0x0F00);
     }
+
+    if (batteryValue >= deschargeTime)
+    {
+      batteryValue = deschargeTime;
+      tone(buzzer, 800);
+      delay(100);
+      noTone(buzzer);
+      delay(10);
+      tone(buzzer, 1600);
+      delay(100);
+      noTone(buzzer);
+      tone(buzzer, 1600);
+      delay(500);
+      noTone(buzzer);
+      isSameRecharge = false;
+    }
+
+    elapsedTime = 0L;
+  }
+}
+
+void fadeInScreen(uint16_t color)
+{
+  int i = 1;
+  while (i <= DISPLAY_WIDTH / 2 + 1)
+  {
+    tft.fillCircle(DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2, i += 10, color);
   }
 }
