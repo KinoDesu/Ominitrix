@@ -1,6 +1,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_GC9A01A.h>
-#include "images.h"
+#include "aliens.h"
+#include "omnitrixAnimation.h"
 
 /*
     Arduino -> UNO
@@ -59,6 +60,10 @@ void setup()
   tft.fillScreen(0x0000);
   fadeInScreen(0x0F00);
 
+  // for (byte i = 0; i < omnitrixAnimationLength; i++) {
+  //   tft.drawBitmap((DISPLAY_WIDTH - 240) / 2, (DISPLAY_HEIGHT - 240) / 2, omnitrixAnimation[i], DISPLAY_WIDTH, DISPLAY_HEIGHT, 0xFFFF);
+  //   tft.fillScreen(0x0000);
+  // }
   pinMode(potentiometer, INPUT);
   pinMode(btnAlienChooser, INPUT);
   pinMode(btnActivate, INPUT);
