@@ -1,7 +1,8 @@
-#include <Adafruit_GFX.h>
-#include <Adafruit_GC9A01A.h>
+#include <AnimatedGIF.h>
+#include <TFT_eSPI.h>
 #include "aliens.h"
 #include "omnitrixAnimation.h"
+#include "teste2.h"
 
 /*
     Arduino -> UNO
@@ -12,9 +13,26 @@
     |     VCC     |  3.3V   |
     |     GND     |  GROUND |
     |     SCL     |  13     |
+    |     SDA     |  12     | 
     |     DC      |  11     |
     |     CS      |  9      |
     |     RST     |  10     |
+    |_____________|_________|
+*/
+
+/*
+    ESP32 -> S2 mini
+    display -> GC9A01 VER1.0
+    _______________________
+    | **DISPLAY** | **PIN** |
+    |:-----------:|:-------:|
+    |     VCC     |  3.3V   |
+    |     GND     |  GROUND |
+    |     SCL     |  18     |
+    |     SDA     |  13     |    
+    |     DC      |  2      |
+    |     CS      |  9      |
+    |     RST     |  4      |
     |_____________|_________|
 */
 
@@ -23,14 +41,18 @@
 #define buzzer 4
 #define btnActivate 6
 
-#define TFT_CS 10
-#define TFT_DC 9
-Adafruit_GC9A01A tft = Adafruit_GC9A01A(TFT_CS, TFT_DC);
+#define TFT_CS 9
+#define TFT_DC 2
+// Adafruit_GC9A01A tft = Adafruit_GC9A01A(TFT_CS, TFT_DC);
+
+TFT_eSPI tft = TFT_eSPI();
+AnimatedGIF gif;
 
 #define DISPLAY_WIDTH 240
 #define DISPLAY_HEIGHT 240
 #define IMAGE_WIDTH 100
 #define IMAGE_HEIGHT 120
+#define GIF_IMAGE omniStartGIF
 
 boolean isAlienForm = false;
 boolean isActivate = false;
@@ -57,7 +79,18 @@ void setup()
   delay(100);
   noTone(buzzer);
 
+  byte oo =0;
+
+  while(oo<10){
+    Serial.println("ligado");
+    delay(1000);
+  }
+
   tft.fillScreen(0x0000);
+  gif.begin(BIG_ENDIAN_PIXELS);
+
+  // tft.drawRGBBitmap();
+
   fadeInScreen(0x0F00);
 
   // for (byte i = 0; i < omnitrixAnimationLength; i++) {
@@ -68,10 +101,23 @@ void setup()
   pinMode(btnAlienChooser, INPUT);
   pinMode(btnActivate, INPUT);
   pinMode(buzzer, OUTPUT);
+  pinMode(15, OUTPUT);
+  digitalWrite(15,HIGH);
 }
 
 void loop()
 {
+  if (gif.open((uint8_t *)GIF_IMAGE, sizeof(GIF_IMAGE), GIFDraw))
+  {
+    tft.startWrite();
+    while (gif.playFrame(true, NULL))
+    {
+      yield();
+    }
+    gif.close();
+    tft.endWrite();
+  }
+
   loopStart = millis();
 
   if (digitalRead(btnActivate) == HIGH)
