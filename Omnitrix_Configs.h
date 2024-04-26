@@ -24,7 +24,7 @@
     |     GND     |  GROUND |      |     GND       |  GROUND |
     |     SCL     |  35     |      |     SW        |  7      |
     |     SDA     |  33     |      |     DT        |  40     |
-    |     DC      |  2      |      |     CLK       |  39     |   
+    |     DC      |  2      |      |     CLK       |  39     |
     |     CS      |  10     |      |_______________|_________|
     |     RST     |  4      |
     |_____________|_________|
@@ -35,7 +35,6 @@
 #include "SPI.h"
 #include "Omnitrix_Aliens.h"
 #include "Omnitrix_Alien_Backround.h"
-#include "Omnitrix_Alien_Selection.h"
 #include "Omnitrix_Animation.h"
 
 #define buzzer 12
@@ -70,7 +69,7 @@ boolean hasLastAlien = false;
 long elapsedTime = 0L;
 long morphedTime = 0L;
 long minMorphTime = 5000L;
-long deschargeTime = 10000L; 
+long deschargeTime = 10000L;
 long batteryValue = deschargeTime;
 long loopStart;
 
@@ -81,49 +80,49 @@ volatile bool rotaryEncoder = false;
 
 void IRAM_ATTR rotary()
 {
-  rotaryEncoder = true;
+    rotaryEncoder = true;
 }
 
 int8_t checkRotaryEncoder()
 {
-  // Reset the flag that brought us here (from ISR)
-  rotaryEncoder = false;
+    // Reset the flag that brought us here (from ISR)
+    rotaryEncoder = false;
 
-  static uint8_t lrmem = 3;
-  static int lrsum = 0;
-  static int8_t TRANS[] = {0, -1, 1, 14, 1, 0, 14, -1, -1, 14, 0, 1, 14, 1, -1, 0};
+    static uint8_t lrmem = 3;
+    static int lrsum = 0;
+    static int8_t TRANS[] = {0, -1, 1, 14, 1, 0, 14, -1, -1, 14, 0, 1, 14, 1, -1, 0};
 
-  // Read BOTH pin states to deterimine validity of rotation (ie not just switch bounce)
-  int8_t l = digitalRead(ROTARY_PINCLK);
-  int8_t r = digitalRead(ROTARY_PINDT);
+    // Read BOTH pin states to deterimine validity of rotation (ie not just switch bounce)
+    int8_t l = digitalRead(ROTARY_PINCLK);
+    int8_t r = digitalRead(ROTARY_PINDT);
 
-  // Move previous value 2 bits to the left and add in our new values
-  lrmem = ((lrmem & 0x03) << 2) + 2 * l + r;
+    // Move previous value 2 bits to the left and add in our new values
+    lrmem = ((lrmem & 0x03) << 2) + 2 * l + r;
 
-  // Convert the bit pattern to a movement indicator (14 = impossible, ie switch bounce)
-  lrsum += TRANS[lrmem];
+    // Convert the bit pattern to a movement indicator (14 = impossible, ie switch bounce)
+    lrsum += TRANS[lrmem];
 
-  /* encoder not in the neutral (detent) state */
-  if (lrsum % 4 != 0)
-  {
+    /* encoder not in the neutral (detent) state */
+    if (lrsum % 4 != 0)
+    {
+        return 0;
+    }
+
+    /* encoder in the neutral state - clockwise rotation*/
+    if (lrsum == 4)
+    {
+        lrsum = 0;
+        return 1;
+    }
+
+    /* encoder in the neutral state - anti-clockwise rotation*/
+    if (lrsum == -4)
+    {
+        lrsum = 0;
+        return -1;
+    }
+
+    // An impossible rotation has been detected - ignore the movement
+    lrsum = 0;
     return 0;
-  }
-
-  /* encoder in the neutral state - clockwise rotation*/
-  if (lrsum == 4)
-  {
-    lrsum = 0;
-    return 1;
-  }
-
-  /* encoder in the neutral state - anti-clockwise rotation*/
-  if (lrsum == -4)
-  {
-    lrsum = 0;
-    return -1;
-  }
-
-  // An impossible rotation has been detected - ignore the movement
-  lrsum = 0;
-  return 0;
 }
