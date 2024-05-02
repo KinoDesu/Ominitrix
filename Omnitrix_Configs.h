@@ -65,6 +65,7 @@ boolean isAlienForm = false;
 boolean isActivate = false;
 boolean isSameRecharge = false;
 boolean hasLastAlien = false;
+boolean isClockMode = false;
 
 long elapsedTime = 0L;
 long morphedTime = 0L;
@@ -72,6 +73,7 @@ long minMorphTime = 5000L;
 long deschargeTime = 10000L;
 long batteryValue = deschargeTime;
 long loopStart;
+long holdCount = 0L;
 
 int alienNo = 0;
 int lastAlienValue = 0;
