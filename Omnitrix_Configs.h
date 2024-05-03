@@ -22,7 +22,7 @@
     |:-------------:|:-------:|      |:-------------:|:-------:|
     |     VCC       |  3.3V   |      |      +        |  3.3V   |
     |     GND       |  GROUND |      |     GND       |  GROUND |
-    |   SCL (CLK)   |  35     |      |     SW        |  7      |
+    |   SCL (CLK)   |  36     |      |     SW        |  7      |
     |   SDA (MOSI)  |  33     |      |     DT        |  40     |
     |      DC       |  2      |      |     CLK       |  39     |
     |      CS       |  10     |      |_______________|_________|
@@ -74,6 +74,7 @@ long deschargeTime = 10000L;
 long batteryValue = deschargeTime;
 long loopStart;
 long holdCount = 0L;
+long clockTime = 0;
 
 int alienNo = 0;
 int lastAlienValue = 0;
