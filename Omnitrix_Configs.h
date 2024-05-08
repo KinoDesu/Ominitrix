@@ -22,11 +22,11 @@
     |:-------------:|:-------:|      |:-------------:|:-------:|
     |     VCC       |  3.3V   |      |      +        |  3.3V   |
     |     GND       |  GROUND |      |     GND       |  GROUND |
-    |   SCL (CLK)   |  36     |      |     SW        |  7      |
-    |   SDA (MOSI)  |  33     |      |     DT        |  40     |
-    |      DC       |  2      |      |     CLK       |  39     |
-    |      CS       |  10     |      |_______________|_________|
-    |     RST       |  4      |
+    |   SCL (CLK)   |  36     |      |     SW        |  13     |
+    |   SDA (MOSI)  |  38     |      |     DT        |  14     |
+    |      DC       |  40     |      |     CLK       |  12     |
+    |      CS       |  39     |      |_______________|_________|
+    |     RST       |  37     |
     |_______________|_________|
 */
 
@@ -37,13 +37,12 @@
 #include "Omnitrix_Alien_Backround.h"
 #include "Omnitrix_Animation.h"
 
-#define buzzer 12
-#define potentiometer 13
-#define btnAlienChooser 7
-#define btnActivate 17
+#define buzzer 11
+#define btnAlienChooser 13
+#define btnActivate 35
 
-#define ROTARY_PINCLK 39
-#define ROTARY_PINDT 40
+#define ROTARY_PINCLK 12
+#define ROTARY_PINDT 14
 
 #define DISPLAY_WIDTH 240
 #define DISPLAY_HEIGHT 240
